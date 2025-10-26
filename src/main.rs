@@ -1,26 +1,32 @@
 use rust_xlsxwriter::*;
-// use calamine::*;
-
+use calamine::{Reader, open_workbook, Xlsx, DataType, Data};
+use clap::* ;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>{
-    let header: [&'static str; 195]=[
+    // define header
+    let header: Vec<&str> = vec![
         // General
-        "CHROM","POS","REF","ALT","DP","AD","QUAL","MQ","Zygosity","FILTER","Effect",
-        "Putative_Impact","Gene_Name","Feature_Type","Feature_ID","Transcript_BioType",
-        "Rank/Total","HGVS.c","HGVS.p","REF_AA","ALT_AA","cDNA_pos","cDNA_length","CDS_pos",
-        "CDS_length","AA_pos","AA_length","Distance",
+        "CHROM"             ,"POS"                ,"REF"         ,"ALT"         ,"DP"        ,
+        "AD"                ,"QUAL"               ,"MQ"          ,"Zygosity"    ,"FILTER"    ,
+        "Effect"            ,"Putative_Impact"    ,"Gene_Name"   ,"Feature_Type","Feature_ID",
+        "Transcript_BioType","Rank/Total"         ,"HGVS.c"      ,"HGVS.p"      ,"REF_AA"    ,
+        "ALT_AA"            ,"cDNA_pos"           ,"cDNA_length" ,"CDS_pos"     ,"CDS_length",
+        "AA_pos"            ,"AA_length"          ,"Distance"    ,
         // dbSNP138 annotation
         "dbSNP138_ID","dbSNP156_ID",
         // 1000 genomes phase 3 annotation
-        "p3_1000G_AF","p3_1000G_AFR_AF","p3_1000G_AMR_AF","p3_1000G_EAS_AF","p3_1000G_EUR_AF","p3_1000G_SAS_AF",
+        "p3_1000G_AF"    ,"p3_1000G_AFR_AF","p3_1000G_AMR_AF","p3_1000G_EAS_AF","p3_1000G_EUR_AF",
+        "p3_1000G_SAS_AF",
         // EVS annotation
         "ESP6500_MAF_EA","ESP6500_MAF_AA","ESP6500_MAF_ALL",
         // Clinvar annotation
         "CLINVAR_CLNSIG","CLINVAR_CLNDISDB","CLINVAR_CLNDN","CLINVAR_CLNREVSTAT",
-        "ACMG_SF_v3.2","REF_AA_dbnsfp","ALT_AA_dbnsfp","hg38_chr","hg38_pos(1-based)","cds_strand","refcodon","codonpos",
-        "codon_degeneracy","SIFT_score","SIFT_converted_rankscore","SIFT_pred","LRT_score",
-        "LRT_converted_rankscore","LRT_pred","LRT_Omega","MutationTaster_score",
-        "MutationTaster_converted_rankscore","MutationTaster_pred","MutationTaster_model",
+        
+        "ACMG_SF_v3.2",
+        "REF_AA_dbnsfp","ALT_AA_dbnsfp","hg38_chr","hg38_pos(1-based)","cds_strand",
+        "refcodon","codonpos","codon_degeneracy","SIFT_score","SIFT_converted_rankscore",
+        "SIFT_pred","LRT_score","LRT_converted_rankscore","LRT_pred","LRT_Omega",
+        "MutationTaster_score","MutationTaster_converted_rankscore","MutationTaster_pred","MutationTaster_model",
         "MutationTaster_AAE","MutationAssessor_score","MutationAssessor_rankscore",
         "MutationAssessor_pred","FATHMM_score","FATHMM_converted_rankscore","FATHMM_pred",
         "PROVEAN_score","PROVEAN_converted_rankscore","PROVEAN_pred","MetaSVM_score",
@@ -67,8 +73,49 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
         "Gene_damage_prediction(cancer_dominant_disease-causing_genes)"
     ];
     
-    let mut result_workbook = Workbook::new();
-    let format = Format::new()
+
+    // read input file
+    let mut dataframe: Vec<String> = Vec::new();
+    const GENE_NAME: &str = "RB1";
+    let mut gene_name_position: Option<(u32, u32)> = None;
+    let mut row_index: u32 = 0;
+    let mut column_index: u32 = 0;
+
+    let path: &'static str = "C:/Users/LaKieuNgocQuyet/Documents/GitHub/MyProject/examples/data/test.xlsx";
+    // Open input workbook and find position of gene name column
+    let mut input_workbook: Xlsx<_> = open_workbook(path).expect("Cannot open file");
+    let sheet_name: &'static str = "SNP_Indel_ANNO";      
+
+
+    let mut input_worksheet = input_workbook.worksheet_range(&sheet_name)?;
+
+    if let Some(input_header) = input_worksheet.rows().next() {
+        for (column_index, cell)  in input_header.iter().enumerate() {
+            if let  Some(value) = cell.get_string() {
+                if (GENE_NAME == value) {
+                    gene_name_position = Some((row_index, column_index as u32));
+                    break;
+                }
+            }          
+        }
+    }
+    // read data of gene name column
+    for row in input_worksheet.rows().skip(1) {
+        if row[gene_name_position.column_index] == GENE_NAME {
+
+        }
+
+
+        
+    }
+    
+
+
+
+
+    // write result 
+    let mut result_workbook: Workbook = Workbook::new();
+    let format: Format = Format::new()
         .set_bold()
         .set_font_size(10)
         .set_align(FormatAlign::Center)
@@ -77,12 +124,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
         .set_border(FormatBorder::Thin)
         .set_border_color(Color::Black)
         .set_text_wrap();
-    let result_worksheet = result_workbook.add_worksheet();
+    let result_worksheet: &mut Worksheet = result_workbook.add_worksheet();
 
     for (i, &col_name) in header.iter().enumerate() {
-        result_worksheet.write_with_format(0, i as u16, col_name, &format)?;
+        result_worksheet.write_with_format(0, i as u16, col_name, &format);
     }
 
-    result_workbook.save("variant_annotation.xlsx")?;
+    result_workbook.save("variant_annotation.xlsx");
+
     Ok(())
 }
